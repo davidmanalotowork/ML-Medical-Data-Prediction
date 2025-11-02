@@ -1,96 +1,185 @@
-import { PatientFormData, PredictionResult, SavedEntry } from '../models/patientModel';
-
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const PYTHON_ML_API = import.meta.env.VITE_PYTHON_ML_API || 'http://localhost:8000';
+
+interface PatientFormData {
+  patientId: string;
+  fullName: string;
+  age: number;
+  gender: string;
+  admissionDate: string;
+  dischargeDate: string;
+  admissionType: string;
+  primaryDiagnosis: string;
+  numberOfProcedures: number;
+  numberOfMedications: number;
+  glucoseLevel: number;
+  a1cResult: number;
+  bmi: number;
+}
+
+interface PredictionResult {
+  riskScore: number;
+  riskLevel: string;
+  recommendation: string;
+  interpretation?: string;
+  topFeatures?: Array<{
+    Feature: string;
+    Contribution: number;
+    Value: any;
+    Interpretation: string;
+  }>;
+  disease?: string;
+}
+
+interface MLAnalysis {
+  summary?: string;
+  clinicalRecommendations?: string;
+  medicationRecommendations?: string;
+  relatedDiseases?: string;
+}
 
 interface PredictionResponse {
   success: boolean;
-  prediction?: PredictionResult;
-  message?: string;
-}
-
-interface SaveResponse {
-  success: boolean;
-  entry?: SavedEntry;
-  message?: string;
+  message: string;
+  data: {
+    prediction: PredictionResult;
+    patientData: PatientFormData;
+    mlAnalysis?: MLAnalysis;
+    sessionId?: string;
+    pdfDownloadUrl?: string;
+    excelDownloadUrl?: string;
+  };
 }
 
 class ManualEntryService {
   private getAuthHeaders(): HeadersInit {
     const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+    
+    if (!token) {
+      console.warn('⚠️ No authentication token found');
+    }
+    
     return {
       'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : '',
+      ...(token && { Authorization: `Bearer ${token}` }),
     };
   }
 
-  async predictReadmission(formData: PatientFormData): Promise<PredictionResult> {
+  async predictReadmission(formData: PatientFormData): Promise<PredictionResponse> {
+    const response = await fetch(`${API_BASE_URL}/manual-entry/predict`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify(formData),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Prediction failed');
+    }
+
+    return response.json();
+  }
+
+  async saveEntry(
+    patientData: PatientFormData, 
+    prediction: PredictionResult,
+    mlAnalysis: MLAnalysis | null,
+    sessionId?: string,
+    pdfDownloadUrl?: string,
+    excelDownloadUrl?: string
+  ): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/manual-entry/save`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ 
+        patientData, 
+        prediction,
+        mlAnalysis,
+        sessionId,
+        pdfDownloadUrl,
+        excelDownloadUrl
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to save entry');
+    }
+
+    return response.json();
+  }
+
+  async getRecentEntries(): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/manual-entry/recent`, {
+      method: 'GET',
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to load recent entries');
+    }
+
+    return response.json();
+  }
+
+  async deleteEntry(id: string): Promise<any> {
+    const response = await fetch(`${API_BASE_URL}/manual-entry/${id}`, {
+      method: 'DELETE',
+      headers: this.getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to delete entry');
+    }
+
+    return response.json();
+  }
+
+  async downloadPDF(url: string, filename: string): Promise<void> {
     try {
-      const response = await fetch(`${API_BASE_URL}/manual-entry/predict`, {
-        method: 'POST',
-        headers: this.getAuthHeaders(),
-        body: JSON.stringify(formData),
-      });
-
-      const result: PredictionResponse = await response.json();
-
+      const fullUrl = `${PYTHON_ML_API}${url}`;
+      const response = await fetch(fullUrl);
+      
       if (!response.ok) {
-        throw new Error(result.message || 'Prediction failed');
+        throw new Error('Failed to download PDF');
       }
 
-      if (!result.prediction) {
-        throw new Error('No prediction data received');
-      }
-
-      return {
-        riskLevel: result.prediction.riskLevel,
-        riskScore: result.prediction.riskScore,
-        recommendation: result.prediction.recommendation,
-        predictedAt: new Date().toISOString(),
-      };
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      window.URL.revokeObjectURL(link.href);
     } catch (error) {
-      console.error('Prediction error:', error);
-      throw error;
+      console.error('PDF download error:', error);
+      throw new Error('Failed to download PDF report');
     }
   }
 
-  async saveEntry(formData: PatientFormData, prediction?: PredictionResult): Promise<SavedEntry> {
-    const savedEntry: SavedEntry = {
-      ...formData,
-      prediction,
-      id: `ME-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      createdAt: new Date().toISOString(),
-    };
+  // ✅ NEW: Download Excel report
+  async downloadExcel(url: string, filename: string): Promise<void> {
+    try {
+      const fullUrl = `${PYTHON_ML_API}${url}`;
+      const response = await fetch(fullUrl);
+      
+      if (!response.ok) {
+        throw new Error('Failed to download Excel');
+      }
 
-    // Save to localStorage
-    const existingEntries = this.getLocalEntries();
-    existingEntries.unshift(savedEntry);
-    const limitedEntries = existingEntries.slice(0, 20);
-    localStorage.setItem('manualEntries', JSON.stringify(limitedEntries));
-
-    return savedEntry;
-  }
-
-  async getRecentEntries(limit: number = 5): Promise<SavedEntry[]> {
-    const entries = this.getLocalEntries();
-    return entries.slice(0, limit);
-  }
-
-  async deleteEntry(id: string): Promise<boolean> {
-    const entries = this.getLocalEntries();
-    const filtered = entries.filter(entry => entry.id !== id);
-    localStorage.setItem('manualEntries', JSON.stringify(filtered));
-    return true;
-  }
-
-  private getLocalEntries(): SavedEntry[] {
-    const stored = localStorage.getItem('manualEntries');
-    return stored ? JSON.parse(stored) : [];
-  }
-
-  exportToPDF(formData: PatientFormData, prediction: PredictionResult): void {
-    console.log('Exporting to PDF:', { formData, prediction });
-    alert('PDF export feature will be implemented with jsPDF library');
+      const blob = await response.blob();
+      const link = document.createElement('a');
+      link.href = window.URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      window.URL.revokeObjectURL(link.href);
+    } catch (error) {
+      console.error('Excel download error:', error);
+      throw new Error('Failed to download Excel report');
+    }
   }
 }
 
 export const manualEntryService = new ManualEntryService();
+export type { PatientFormData, PredictionResult, PredictionResponse, MLAnalysis };

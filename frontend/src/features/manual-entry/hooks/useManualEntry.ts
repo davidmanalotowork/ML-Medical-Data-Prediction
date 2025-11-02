@@ -1,53 +1,118 @@
 import { useState, useCallback } from 'react';
-import { PatientFormData, PredictionResult, SavedEntry, initialFormData } from '../models/patientModel';
-import { manualEntryService } from '../services/manualEntryService';
+import { manualEntryService, PatientFormData, PredictionResult, MLAnalysis } from '../services/manualEntryService';
 
-export type Status = 'idle' | 'predicting' | 'saving' | 'loading' | 'success' | 'error';
+type Status = 'idle' | 'predicting' | 'saving' | 'loading' | 'success' | 'error';
+
+interface SavedEntry {
+  _id: string;
+  patientId: string;
+  fullName: string;
+  prediction: PredictionResult;
+  createdAt: string;
+  pdfDownloadUrl?: string;
+  excelDownloadUrl?: string;
+}
 
 interface UseManualEntryReturn {
   formData: PatientFormData;
   prediction: PredictionResult | null;
+  mlAnalysis: MLAnalysis | null;
   recentEntries: SavedEntry[];
   status: Status;
   error: string | null;
+  sessionId: string | null;
+  pdfDownloadUrl: string | null;
+  excelDownloadUrl: string | null;
   updateField: (field: keyof PatientFormData, value: any) => void;
   predictReadmission: () => Promise<void>;
   saveEntry: () => Promise<void>;
   resetForm: () => void;
   loadRecentEntries: () => Promise<void>;
   deleteEntry: (id: string) => Promise<void>;
-  exportReport: () => void;
+  exportPDF: () => Promise<void>;
+  exportExcel: () => Promise<void>;
 }
+
+const initialFormData: PatientFormData = {
+  patientId: '',
+  fullName: '',
+  age: 0,
+  gender: 'Male',
+  admissionDate: '',
+  dischargeDate: '',
+  admissionType: 'Emergency',
+  primaryDiagnosis: '',
+  numberOfProcedures: 0,
+  numberOfMedications: 0,
+  glucoseLevel: 0,
+  a1cResult: 0,
+  bmi: 0,
+};
 
 export const useManualEntry = (): UseManualEntryReturn => {
   const [formData, setFormData] = useState<PatientFormData>(initialFormData);
   const [prediction, setPrediction] = useState<PredictionResult | null>(null);
-  const [recentEntries, setRecentEntries] = useState<SavedEntry[]>([]); // Define recentEntries state
+  const [mlAnalysis, setMlAnalysis] = useState<MLAnalysis | null>(null);
+  const [recentEntries, setRecentEntries] = useState<SavedEntry[]>([]);
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [pdfDownloadUrl, setPdfDownloadUrl] = useState<string | null>(null);
+  const [excelDownloadUrl, setExcelDownloadUrl] = useState<string | null>(null);
 
   const updateField = useCallback((field: keyof PatientFormData, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    setError(null);
+    setFormData((prev) => ({ ...prev, [field]: value }));
   }, []);
 
   const predictReadmission = useCallback(async () => {
     setStatus('predicting');
     setError(null);
+    setPrediction(null);
+    setMlAnalysis(null);
+    setSessionId(null);
+    setPdfDownloadUrl(null);
+    setExcelDownloadUrl(null);
 
     try {
-      const result = await manualEntryService.predictReadmission(formData);
-      setPrediction(result);
+      const response = await manualEntryService.predictReadmission(formData);
+      setPrediction(response.data.prediction);
+      setMlAnalysis(response.data.mlAnalysis || null);
+      setSessionId(response.data.sessionId || null);
+      setPdfDownloadUrl(response.data.pdfDownloadUrl || null);
+      setExcelDownloadUrl(response.data.excelDownloadUrl || null);
       setStatus('success');
     } catch (err) {
+      const errorMessage = (err as Error).message;
+      
+      // ✅ NEW: Show user-friendly error for unsupported diseases
+      if (errorMessage.includes('Unsupported disease')) {
+        setError(
+          'The selected disease is not supported. Please choose from: Type 2 Diabetes, Chronic Kidney Disease, COPD, Hypertension, or Pneumonia.'
+        );
+      } else {
+        setError(errorMessage);
+      }
+      
       setStatus('error');
-      setError((err as Error).message || 'Failed to predict readmission risk');
     }
   }, [formData]);
 
+  const loadRecentEntries = useCallback(async () => {
+    setStatus('loading');
+    try {
+      const response = await manualEntryService.getRecentEntries();
+      setRecentEntries(Array.isArray(response.data) ? response.data : []);
+      setStatus('idle');
+    } catch (err) {
+      console.error('Failed to load recent entries:', err);
+      setRecentEntries([]);
+      setStatus('idle');
+    }
+  }, []);
+
   const saveEntry = useCallback(async () => {
     if (!prediction) {
-      setError('Please predict readmission risk before saving');
+      setError('No prediction to save');
       return;
     }
 
@@ -55,65 +120,95 @@ export const useManualEntry = (): UseManualEntryReturn => {
     setError(null);
 
     try {
-      const savedEntry = await manualEntryService.saveEntry(formData, prediction);
+      await manualEntryService.saveEntry(
+        formData, 
+        prediction, 
+        mlAnalysis,
+        sessionId || undefined,
+        pdfDownloadUrl || undefined,
+        excelDownloadUrl || undefined
+      );
       setStatus('success');
-      setRecentEntries(prev => [savedEntry, ...prev.slice(0, 4)]); // Update recentEntries state
-      
-      setTimeout(() => {
-        resetForm();
-      }, 2000);
+      // Reload recent entries after successful save
+      const response = await manualEntryService.getRecentEntries();
+      setRecentEntries(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
+      setError((err as Error).message);
       setStatus('error');
-      setError((err as Error).message || 'Failed to save entry');
     }
-  }, [formData, prediction]);
+  }, [formData, prediction, mlAnalysis, sessionId, pdfDownloadUrl, excelDownloadUrl]);
 
   const resetForm = useCallback(() => {
     setFormData(initialFormData);
     setPrediction(null);
+    setMlAnalysis(null);
     setError(null);
     setStatus('idle');
-  }, []);
-
-  const loadRecentEntries = useCallback(async () => {
-    setStatus('loading');
-    try {
-      const entries = await manualEntryService.getRecentEntries(5);
-      setRecentEntries(entries); // Update recentEntries state
-      setStatus('idle');
-    } catch (err) {
-      setError((err as Error).message || 'Failed to load recent entries');
-      setStatus('error');
-    }
+    setSessionId(null);
+    setPdfDownloadUrl(null);
+    setExcelDownloadUrl(null);
   }, []);
 
   const deleteEntry = useCallback(async (id: string) => {
-    const success = await manualEntryService.deleteEntry(id);
-    if (success) {
-      setRecentEntries(prev => prev.filter(entry => entry.id !== id)); // Update recentEntries state
+    try {
+      await manualEntryService.deleteEntry(id);
+      // Reload recent entries after successful delete
+      const response = await manualEntryService.getRecentEntries();
+      setRecentEntries(Array.isArray(response.data) ? response.data : []);
+    } catch (err) {
+      setError((err as Error).message);
     }
   }, []);
 
-  const exportReport = useCallback(() => {
-    if (!prediction) {
-      setError('Please predict readmission risk before exporting');
+  const exportPDF = useCallback(async () => {
+    if (!pdfDownloadUrl) {
+      setError('No PDF report available');
       return;
     }
-    manualEntryService.exportToPDF(formData, prediction);
-  }, [formData, prediction]);
+
+    try {
+      await manualEntryService.downloadPDF(
+        pdfDownloadUrl,
+        `${formData.patientId}_report.pdf`
+      );
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }, [pdfDownloadUrl, formData.patientId]);
+
+  const exportExcel = useCallback(async () => {
+    if (!excelDownloadUrl) {
+      setError('No Excel report available');
+      return;
+    }
+
+    try {
+      await manualEntryService.downloadExcel(
+        excelDownloadUrl,
+        `${formData.patientId}_report.xlsx`
+      );
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }, [excelDownloadUrl, formData.patientId]);
 
   return {
     formData,
     prediction,
-    recentEntries, // Include recentEntries in the return object
+    mlAnalysis,
+    recentEntries,
     status,
     error,
+    sessionId,
+    pdfDownloadUrl,
+    excelDownloadUrl,
     updateField,
     predictReadmission,
     saveEntry,
     resetForm,
     loadRecentEntries,
     deleteEntry,
-    exportReport,
+    exportPDF,
+    exportExcel,
   };
 };

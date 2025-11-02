@@ -2,8 +2,10 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
+import numpy as np
 import os
 import uuid
+import re
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -197,8 +199,19 @@ async def analyze_file(
         )
         
         # Clean HTML tags from interpretation
-        import re
         clean_interpretation = re.sub('<[^<]+?>', '', main_interpretation)
+        
+        # ✅ FIX: Replace NaN values with None before converting to dict
+        top_features_dict = top_features.replace({np.nan: None, np.inf: None, -np.inf: None}).to_dict(orient="records")
+        
+        # ✅ FIX: Ensure all numeric values are JSON-safe
+        for feature in top_features_dict:
+            for key, value in feature.items():
+                if isinstance(value, float):
+                    if np.isnan(value) or np.isinf(value):
+                        feature[key] = None
+                    else:
+                        feature[key] = round(float(value), 6)
         
         # Prepare JSON response
         result = {
@@ -214,7 +227,7 @@ async def analyze_file(
             "clinical_recommendations": clinical_text,
             "medication_recommendations": medication_text,
             "related_disease_predictions": related_diseases_text,
-            "top_features": top_features.to_dict(orient="records"),
+            "top_features": top_features_dict,
             "download_links": {
                 "pdf": f"/download/pdf/{session_id}",
                 "excel": f"/download/excel/{session_id}"

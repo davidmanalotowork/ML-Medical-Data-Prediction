@@ -13,22 +13,20 @@ npm install
 
 **Create `backend/.env`:**
 ```env
-# Server
 PORT=5000
 NODE_ENV=development
 
-# MongoDB
 MONGO_URI=mongodb://localhost:27017/hospital-readmissions
-# Or Atlas: mongodb+srv://username:password@cluster.mongodb.net/hospital-readmissions
 
-# JWT
 JWT_SECRET=your_super_secret_jwt_key_here_256_bit_minimum
 JWT_EXPIRE=7d
 
-# CORS
 FRONTEND_URL=http://localhost:5173
 
-# Redis (Optional - for production rate limiting)
+# Python ML API
+PYTHON_ML_API=http://localhost:8000
+
+# Redis (Optional)
 UPSTASH_REDIS_REST_URL=https://your-upstash-redis-url
 UPSTASH_REDIS_REST_TOKEN=your-upstash-redis-token
 ```
