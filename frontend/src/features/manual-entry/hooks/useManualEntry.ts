@@ -74,6 +74,30 @@ export const useManualEntry = (): UseManualEntryReturn => {
     setExcelDownloadUrl(null);
 
     try {
+      // ✅ NEW: Check for duplicate BEFORE prediction
+      const duplicateCheck = await manualEntryService.checkDuplicate(
+        formData.patientId,
+        formData.fullName
+      );
+
+      if (duplicateCheck.isDuplicate) {
+        setStatus('error');
+        const existingRecord = duplicateCheck.existingRecord;
+        
+        const errorMsg = `❌ Duplicate Patient Record\n\n` +
+          `Patient ID: ${existingRecord.patientId}\n` +
+          `Full Name: ${existingRecord.fullName}\n` +
+          `Primary Diagnosis: ${existingRecord.primaryDiagnosis}\n` +
+          `Risk Level: ${existingRecord.riskLevel || 'Unknown'}\n` +
+          `Created: ${new Date(existingRecord.createdAt).toLocaleDateString()}\n\n` +
+          `This patient already exists in your records. Please use a different Patient ID or Full Name.`;
+        
+        setError(errorMsg);
+        alert(errorMsg);
+        return;
+      }
+
+      // ✅ If no duplicate, proceed with prediction
       const response = await manualEntryService.predictReadmission(formData);
       setPrediction(response.data.prediction);
       setMlAnalysis(response.data.mlAnalysis || null);
@@ -84,7 +108,6 @@ export const useManualEntry = (): UseManualEntryReturn => {
     } catch (err) {
       const errorMessage = (err as Error).message;
       
-      // ✅ NEW: Show user-friendly error for unsupported diseases
       if (errorMessage.includes('Unsupported disease')) {
         setError(
           'The selected disease is not supported. Please choose from: Type 2 Diabetes, Chronic Kidney Disease, COPD, Hypertension, or Pneumonia.'

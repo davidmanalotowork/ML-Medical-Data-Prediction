@@ -110,6 +110,56 @@ const detectDiseaseFromDiagnosis = (diagnosis) => {
   );
 };
 
+// ✅ NEW: Check for duplicate before prediction
+export const checkDuplicate = async (req, res) => {
+  try {
+    const user = req.user;
+    const { patientId, fullName } = req.body;
+
+    if (!user || !patientId || !fullName) {
+      return res.status(400).json({
+        success: false,
+        message: 'User, Patient ID, and Full Name are required',
+      });
+    }
+
+    // Check if entry exists
+    const existingEntry = await ManualEntry.findOne({
+      userId: user.id,
+      patientId: patientId,
+      fullName: fullName
+    });
+
+    if (existingEntry) {
+      return res.status(200).json({
+        success: true,
+        isDuplicate: true,
+        message: `A patient with ID "${patientId}" and name "${fullName}" already exists in your records.`,
+        existingRecord: {
+          patientId: existingEntry.patientId,
+          fullName: existingEntry.fullName,
+          primaryDiagnosis: existingEntry.primaryDiagnosis,
+          createdAt: existingEntry.createdAt,
+          riskLevel: existingEntry.prediction?.riskLevel
+        }
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      isDuplicate: false,
+      message: 'No duplicate found'
+    });
+
+  } catch (error) {
+    console.error('Error checking duplicate:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error checking for duplicates',
+    });
+  }
+};
+
 export const predictManualEntry = async (req, res) => {
   try {
     // ✅ Step 1: Check for validation errors from express-validator
@@ -361,6 +411,20 @@ export const saveManualEntry = async (req, res) => {
 
     const { patientData, prediction, mlAnalysis, sessionId, pdfDownloadUrl, excelDownloadUrl } = req.body;
 
+    // ✅ Keep duplicate check here as backup (in case frontend check is bypassed)
+    const existingEntry = await ManualEntry.findOne({
+      userId: user.id,
+      patientId: patientData.patientId,
+      fullName: patientData.fullName
+    });
+
+    if (existingEntry) {
+      return res.status(409).json({
+        success: false,
+        message: `A patient with ID "${patientData.patientId}" and name "${patientData.fullName}" already exists.`,
+      });
+    }
+
     // Create new manual entry
     const manualEntry = new ManualEntry({
       userId: user.id,
@@ -412,10 +476,18 @@ export const saveManualEntry = async (req, res) => {
 
   } catch (error) {
     console.error('Error saving manual entry:', error);
+    
+    // Handle duplicate key error from MongoDB
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: 'This patient record already exists. Please use a different Patient ID and Full Name combination.',
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      message: 'Error saving manual entry',
-      error: error.message,
+      message: 'Failed to save manual entry',
     });
   }
 };
@@ -453,47 +525,44 @@ export const getRecentEntries = async (req, res) => {
   }
 };
 
-export const deleteManualEntry = async (req, res) => {
+// ✅ ADD: Delete entry function
+export const deleteEntry = async (req, res) => {
   try {
     const user = req.user;
-
-    if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
-      return res.status(403).json({
-        success: false,
-        message: 'Only admins can delete manual entries',
-      });
-    }
-
     const { id } = req.params;
 
-    if (!id) {
-      return res.status(400).json({
+    if (!user) {
+      return res.status(401).json({
         success: false,
-        message: 'Entry ID is required',
+        message: 'Unauthorized',
       });
     }
 
-    const deletedEntry = await ManualEntry.findByIdAndDelete(id);
-
-    if (!deletedEntry) {
-      return res.status(404).json({
-        success: false,
-        message: 'Entry not found',
-      });
-    }
-
-    res.json({
-      success: true,
-      message: 'Manual entry deleted successfully',
-      deletedId: id,
+    // Find and verify ownership
+    const entry = await ManualEntry.findOne({
+      _id: id,
+      userId: user.id,
     });
 
+    if (!entry) {
+      return res.status(404).json({
+        success: false,
+        message: 'Entry not found or you do not have permission to delete it',
+      });
+    }
+
+    // Delete the entry
+    await ManualEntry.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Entry deleted successfully',
+    });
   } catch (error) {
-    console.error('Error deleting manual entry:', error);
+    console.error('Error deleting entry:', error);
     res.status(500).json({
       success: false,
-      message: 'Error deleting manual entry',
-      error: error.message,
+      message: 'Failed to delete entry',
     });
   }
 };

@@ -100,9 +100,19 @@ const manualEntrySchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Index for faster queries
 manualEntrySchema.index({ userId: 1, createdAt: -1 });
-manualEntrySchema.index({ patientId: 1 });
+
+manualEntrySchema.index(
+  { 
+    userId: 1, 
+    patientId: 1,
+    fullName: 1
+  }, 
+  { 
+    unique: true,
+    name: 'unique_patient_id_name_per_user'
+  }
+);
 
 const ManualEntry = mongoose.model('ManualEntry', manualEntrySchema);
 

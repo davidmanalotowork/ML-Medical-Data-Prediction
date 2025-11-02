@@ -65,6 +65,26 @@ class ManualEntryService {
     };
   }
 
+  // ✅ NEW: Check for duplicate before prediction
+  async checkDuplicate(patientId: string, fullName: string): Promise<{
+    isDuplicate: boolean;
+    message: string;
+    existingRecord?: any;
+  }> {
+    const response = await fetch(`${API_BASE_URL}/manual-entry/check-duplicate`, {
+      method: 'POST',
+      headers: this.getAuthHeaders(),
+      body: JSON.stringify({ patientId, fullName }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to check duplicate');
+    }
+
+    return response.json();
+  }
+
   async predictReadmission(formData: PatientFormData): Promise<PredictionResponse> {
     const response = await fetch(`${API_BASE_URL}/manual-entry/predict`, {
       method: 'POST',
