@@ -31,7 +31,6 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
   results, 
   fileName = 'predictions', 
   disease,
-  sessionId,
   pdfDownloadUrl,
   excelDownloadUrl
 }) => {
@@ -52,7 +51,7 @@ export const ResultsTable: React.FC<ResultsTableProps> = ({
 
     try {
       await uploadService.downloadReport(
-        pdfDownloadUrl, 
+        pdfDownloadUrl,
         `${fileName.replace(/\.[^/.]+$/, '')}_report.pdf`
       );
     } catch (error) {

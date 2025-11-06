@@ -117,7 +117,10 @@ class UploadService {
 
       const mlResult = await mlResponse.json();
 
-      // ✅ Return data with download links, patient name, and interpretation
+      // Construct full download URLs by combining API base URL
+      const pdfDownloadUrl = `${PYTHON_ML_API}${mlResult.download_links.pdf}`;
+      const excelDownloadUrl = `${PYTHON_ML_API}${mlResult.download_links.excel}`;
+
       return {
         success: true,
         message: `Successfully analyzed patient for ${mlResult.disease}`,
@@ -127,20 +130,18 @@ class UploadService {
           predictions: [{
             no: 1,
             patientId: mlResult.patient_id,
-            patientName: mlResult.patient_name || 'Unknown',  // ✅ Include patient name
+            patientName: mlResult.patient_name || 'Unknown',
             risk: mlResult.decision === 'High Risk' ? 'High' : 'Low',
             probability: mlResult.probability,
             reasons: mlResult.top_features.slice(0, 5).map((f: any) => f.Feature),
-            interpretation: mlResult.interpretation,  // ✅ Include interpretation
-            riskScore: mlResult.probability,
+            interpretation: mlResult.interpretation
           }],
           disease: mlResult.disease,
           fileSize: excelData.file.size,
-          // ✅ Include session ID and download URLs
           sessionId: mlResult.session_id,
-          pdfDownloadUrl: `${PYTHON_ML_API}${mlResult.download_links.pdf}`,
-          excelDownloadUrl: `${PYTHON_ML_API}${mlResult.download_links.excel}`,
-        },
+          pdfDownloadUrl: pdfDownloadUrl,    // Include full URL
+          excelDownloadUrl: excelDownloadUrl  // Include full URL
+        }
       };
     } catch (error) {
       console.error('Upload error:', error);
