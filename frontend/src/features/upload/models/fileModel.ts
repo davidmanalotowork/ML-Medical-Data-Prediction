@@ -24,7 +24,7 @@ export class FileModel {
     'application/csv',
   ];
 
-  private static readonly ACCEPTED_EXTENSIONS = ['.xls', '.xlsx', '.csv'];
+  private static readonly ACCEPTED_EXTENSIONS = ['.xlsx', '.csv'];
   private static readonly MAX_FILE_SIZE = 10 * 1024 * 1024;
 
   // Required medical columns for validation
@@ -57,7 +57,7 @@ export class FileModel {
     if (!hasValidExtension) {
       return {
         isValid: false,
-        error: 'Invalid file type. Please upload an Excel or CSV file (.xls, .xlsx, or .csv)',
+        error: 'Invalid file type. Please upload a CSV or Excel .xlsx file.',
       };
     }
 

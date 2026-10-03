@@ -1,4 +1,7 @@
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from collections import defaultdict, deque
+import time
+
+from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Request
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
@@ -27,23 +30,63 @@ from interpretation_rules import (
     interpret_feature
 )
 
+MODEL_VERSION = os.getenv("ML_MODEL_VERSION", "1.0.0")
+
 app = FastAPI(
     title="Readmission Risk Analysis API",
     description="Comprehensive hospital readmission risk prediction with clinical insights",
     version="2.0.0"
 )
 
-# Add CORS middleware
+# Configure browser origins for local development and deployment.
+allowed_origins = [
+    origin.strip()
+    for origin in os.getenv(
+        "ALLOWED_ORIGINS",
+        "http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000"
+    ).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=allowed_origins,
+    allow_credentials=False,
+    allow_methods=["GET", "POST"],
+    allow_headers=["Content-Type"],
 )
+
+ANALYZE_RATE_LIMIT = 30
+ANALYZE_RATE_WINDOW_SECONDS = 60
+analysis_request_times: dict[str, deque[float]] = defaultdict(deque)
+
+
+@app.middleware("http")
+async def limit_analysis_requests(request: Request, call_next):
+    if request.method == "POST" and request.url.path in {"/analyze", "/upload"}:
+        client_ip = request.client.host if request.client else "unknown"
+        now = time.monotonic()
+        request_times = analysis_request_times[client_ip]
+        window_start = now - ANALYZE_RATE_WINDOW_SECONDS
+
+        while request_times and request_times[0] <= window_start:
+            request_times.popleft()
+
+        if len(request_times) >= ANALYZE_RATE_LIMIT:
+            retry_after = max(1, int(request_times[0] + ANALYZE_RATE_WINDOW_SECONDS - now))
+            return JSONResponse(
+                {"error": "Too many analysis requests. Please try again shortly."},
+                status_code=429,
+                headers={"Retry-After": str(retry_after)}
+            )
+
+        request_times.append(now)
+
+    return await call_next(request)
 
 # Temporary storage for generated files
 TEMP_FILES = {}
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
 # -----------------------------
 # Root Endpoint
@@ -55,6 +98,7 @@ async def root():
         "status": "healthy",
         "api_name": "Readmission Risk Analysis API",
         "version": "2.0.0",
+        "model_version": MODEL_VERSION,
         "available_diseases": list(REGISTRY.keys()),
         "endpoints": {
             "root": "/ (GET) - This page",
@@ -111,16 +155,26 @@ async def analyze_file(
         
         print(f"Disease validated: {disease}")
         
-        # Read uploaded file into DataFrame
-        if file.filename.endswith(".csv"):
-            df = pd.read_csv(file.file)
-        elif file.filename.endswith((".xls", ".xlsx")):
-            df = pd.read_excel(file.file)
-        else:
+        file_extension = Path(file.filename or "").suffix.lower()
+        if file_extension not in {".csv", ".xlsx"}:
             return JSONResponse(
-                {"error": "Only CSV or Excel files are supported."},
+                {"error": "Only CSV and .xlsx files are supported."},
                 status_code=400
             )
+
+        uploaded_content = await file.read(MAX_UPLOAD_BYTES + 1)
+        if len(uploaded_content) > MAX_UPLOAD_BYTES:
+            return JSONResponse(
+                {"error": "File exceeds the 10 MB upload limit."},
+                status_code=413
+            )
+        await file.seek(0)
+
+        # Read uploaded file into DataFrame
+        if file_extension == ".csv":
+            df = pd.read_csv(file.file)
+        else:
+            df = pd.read_excel(file.file)
         
         print(f"File read successfully: {len(df)} rows, {len(df.columns)} columns")
         
@@ -409,6 +463,7 @@ async def health_check():
     return {
         "status": "healthy",
         "api_version": "2.0.0",
+        "model_version": MODEL_VERSION,
         "available_diseases": list(REGISTRY.keys()),
         "total_models": len(REGISTRY),
         "features": [

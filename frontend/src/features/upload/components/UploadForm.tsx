@@ -6,12 +6,11 @@ import {
   CheckCircle2,
   AlertCircle,
   FileSpreadsheet,
-  Download,
   RefreshCw,
-  Database,
   Loader2,
   HelpCircle,
   FileText,
+  Download,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -45,8 +44,6 @@ export const UploadForm: React.FC<UploadFormProps> = ({ onUploadSuccess }) => {
     handleDrop,
     openFilePicker,
     uploadFile,
-    useSampleData,
-    downloadTemplate,
     reset,
   } = useUploadViewModel();
   const [isHelpModalOpen, setIsHelpModalOpen] = useState(false);
@@ -67,7 +64,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({ onUploadSuccess }) => {
     }
   }, [status, uploadResponse, file, onUploadSuccess]);
 
-  const isProcessing = status === 'validating' || status === 'reading' || status === 'uploading';
+  const isProcessing = status === 'validating' || status === 'uploading';
 
   const getFileIcon = () => {
     if (!file) return <Upload className="w-16 h-16 text-gray-400" />;
@@ -91,7 +88,12 @@ export const UploadForm: React.FC<UploadFormProps> = ({ onUploadSuccess }) => {
               apiStatus.isConnected ? 'bg-white animate-pulse' : 'bg-white'
             }`}
           />
-          {apiStatus.message}
+          <span>{apiStatus.message}</span>
+          {apiStatus.modelVersion && (
+            <span className="border-l border-current/30 pl-2">
+              Model v{apiStatus.modelVersion}
+            </span>
+          )}
         </Badge>
       </div>
 
@@ -103,10 +105,19 @@ export const UploadForm: React.FC<UploadFormProps> = ({ onUploadSuccess }) => {
             Upload Patient Data
           </CardTitle>
           <CardDescription>
-            Upload a CSV or Excel file (.csv, .xls, .xlsx) containing patient readmission data for AI-powered analysis
+            Upload a CSV or Excel .xlsx file containing patient data for risk analysis
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <a
+            href="/sample-patient-data.csv"
+            download
+            className="inline-flex items-center gap-2 text-sm font-medium text-blue-700 hover:text-blue-900"
+          >
+            <Download className="h-4 w-4" />
+            Download CSV template
+          </a>
+
           {/* Drag & Drop Area */}
           <div
             onDragEnter={handleDragEnter}
@@ -128,7 +139,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({ onUploadSuccess }) => {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".xls,.xlsx,.csv"
+              accept=".xlsx,.csv"
               onChange={handleFileSelect}
               className="hidden"
               disabled={isProcessing}
@@ -141,13 +152,12 @@ export const UploadForm: React.FC<UploadFormProps> = ({ onUploadSuccess }) => {
                   <div className="space-y-2">
                     <p className="text-lg font-medium text-gray-700">
                       {status === 'validating' && 'Validating file...'}
-                      {status === 'reading' && 'Reading file...'}
                       {status === 'uploading' && 'Processing with AI model...'}
                     </p>
                     <Progress value={status === 'uploading' ? 75 : 50} className="w-64" />
                     {status === 'uploading' && (
                       <p className="text-sm text-gray-500">
-                        Running predictions on {excelData?.rowCount} records...
+                        Analyzing the uploaded file...
                       </p>
                     )}
                   </div>
@@ -168,7 +178,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({ onUploadSuccess }) => {
                     </p>
                     <p className="text-sm text-gray-500">or click to browse files</p>
                     <p className="text-xs text-gray-400">
-                      Accepted formats: CSV, Excel (.csv, .xls, .xlsx) - Max 10MB
+                      Accepted formats: CSV and Excel (.xlsx) - Max 10MB
                     </p>
                   </div>
                 </>
@@ -192,17 +202,9 @@ export const UploadForm: React.FC<UploadFormProps> = ({ onUploadSuccess }) => {
                     <CheckCircle2 className="w-5 h-5 text-green-600" />
                   </div>
                   {excelData && (
-                    <div className="text-sm text-gray-700 space-y-1">
-                      <p>
-                        <span className="font-medium">Rows:</span> {excelData.rowCount}
-                      </p>
-                      <p>
-                        <span className="font-medium">Columns:</span> {excelData.headers?.length}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-2">
-                        Ready for AI prediction analysis
-                      </p>
-                    </div>
+                    <p className="text-sm text-gray-600">
+                      File ready for server-side validation and analysis
+                    </p>
                   )}
                 </div>
               </div>
@@ -245,7 +247,7 @@ export const UploadForm: React.FC<UploadFormProps> = ({ onUploadSuccess }) => {
               Upload File
             </Button>
             <Button
-              onClick={() => navigate('/manual-entry')}
+              onClick={() => navigate('/')}
               className="flex items-center gap-2"
               variant="outline"
             >

@@ -1,0 +1,20 @@
+{$SITE_DOMAIN} {
+	encode zstd gzip
+
+	handle_path /ml/* {
+		request_body {
+			max_size 10MB
+		}
+		reverse_proxy ml-api:8000
+	}
+
+	handle /api/* {
+		reverse_proxy backend:5000
+	}
+
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

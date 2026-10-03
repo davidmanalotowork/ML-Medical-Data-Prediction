@@ -10,9 +10,9 @@ export const AboutPage: React.FC = () => {
 
       <div className="max-w-7xl mx-auto p-6 md:p-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">About Us</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">About the Tool</h1>
           <p className="text-gray-600">
-            Learn more about our Hospital Readmission Prediction System
+            Learn how the clinical risk prediction workflow works and how to use it effectively
           </p>
         </div>
 
@@ -26,12 +26,12 @@ export const AboutPage: React.FC = () => {
 
           <CardContent className="space-y-6">
             <section>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">What We Do</h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">What This Tool Does</h3>
               <p className="text-gray-700 leading-relaxed">
-                The Hospital Readmission Prediction System analyzes patient data to predict the likelihood
-                of hospital readmission within 30 days of discharge. Our system processes multiple factors
-                including patient demographics, medical history, diagnosis codes, and treatment patterns to
-                generate accurate risk assessments.
+                This clinical risk prediction tool evaluates patient information to estimate the likelihood
+                of a negative outcome or readmission risk. It considers multiple factors such as patient
+                demographics, diagnoses, procedures, medications, and clinical indicators to generate a
+                risk assessment and supporting recommendations.
               </p>
             </section>
 
@@ -39,10 +39,10 @@ export const AboutPage: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-3">How It Works</h3>
               <ul className="space-y-3 text-gray-700">
                 {[
-                  "Upload patient data in Excel format or enter manually",
-                  "Our ML model analyzes multiple risk factors",
-                  "Receive instant risk predictions and recommendations",
-                  "Track trends and monitor patient outcomes",
+                  "Upload a CSV or Excel file, or enter patient details manually",
+                  "The model analyzes the provided clinical and demographic factors",
+                  "Review the risk score, key contributors, and recommended next steps",
+                  "Review the result and download a report for later reference",
                 ].map((step, index) => (
                   <li key={index} className="flex items-start gap-3">
                     <span className="mt-2 w-2 h-2 bg-blue-600 rounded-full flex-shrink-0" />

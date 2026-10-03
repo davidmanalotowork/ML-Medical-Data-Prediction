@@ -121,6 +121,14 @@ export const useManualEntry = (): UseManualEntryReturn => {
   }, [formData]);
 
   const loadRecentEntries = useCallback(async () => {
+    const token = localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+
+    if (!token) {
+      setRecentEntries([]);
+      setStatus('idle');
+      return;
+    }
+
     setStatus('loading');
     try {
       const response = await manualEntryService.getRecentEntries();

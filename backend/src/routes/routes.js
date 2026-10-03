@@ -144,8 +144,8 @@ const uploadValidation = [
 
 router.post('/upload/excel', apiLimiter, adminAuth, uploadValidation, uploadExcelData);
 
-router.post('/manual-entry/check-duplicate', apiLimiter, verifyToken, checkDuplicate);
-router.post('/manual-entry/predict', apiLimiter, verifyToken, validateManualEntry, predictManualEntry);
+router.post('/manual-entry/check-duplicate', apiLimiter, checkDuplicate);
+router.post('/manual-entry/predict', apiLimiter, validateManualEntry, predictManualEntry);
 router.post('/manual-entry/save', strictLimiter, adminAuth, saveManualEntry);
 router.get('/manual-entry/recent', apiLimiter, verifyToken, getRecentEntries);
 router.delete('/manual-entry/:id', strictLimiter, adminAuth, deleteEntry);

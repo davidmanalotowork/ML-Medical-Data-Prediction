@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { History as HistoryIcon, Clock, FileSpreadsheet, CheckCircle2, AlertCircle, TrendingUp, Loader2, Trash2, MoreVertical, Download, FileDown } from 'lucide-react';
+import { History as HistoryIcon, Clock, FileSpreadsheet, AlertCircle, TrendingUp, Loader2, Trash2, MoreVertical, Download, FileDown } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

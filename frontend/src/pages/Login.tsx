@@ -6,7 +6,7 @@ import { authService } from '@/features/auth/services/authService';
 export const LoginPage: React.FC = () => {
 
   if (authService.isAuthenticated()) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/admin/dashboard" replace />;
   }
 
   return (

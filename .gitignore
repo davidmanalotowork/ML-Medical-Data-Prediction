@@ -5,3 +5,8 @@ backend/node_modules
 backend/.env
 backend/dist
 backend/venv
+__pycache__/
+*.py[cod]
+frontend/tsconfig.tsbuildinfo
+backend/src/python/reports/*.pdf
+backend/src/python/reports/*.xlsx

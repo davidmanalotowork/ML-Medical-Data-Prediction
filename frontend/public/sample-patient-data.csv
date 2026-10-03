@@ -1,0 +1,2 @@
+age,sex,length_of_stay,prior_admissions_90d,comorbidities_count,followup_scheduled,discharge_destination,HbA1c,Fasting_glucose,Creatinine,Insulin_use,BMI,Systolic_BP,Diastolic_BP,Heart_disease_history,Medication_adherence,WBC_count,Oxygen_saturation,Temperature,Antibiotic_class,ICU_admit,BUN,Hemoglobin,Albumin,Dialysis_access_type,FEV1_percent,Smoking_status,Prior_exacerbations_1yr,Use_of_home_oxygen,patient_name
+65,F,5,2,3,1,home,7.8,182,1.1,1,31.4,138,84,0,1,7.2,97,36.8,,0,18,13.2,3.8,,82,,0,0,Example Patient

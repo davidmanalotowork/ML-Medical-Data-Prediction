@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { FileModel, FileValidationResult, ExcelFileData } from '../models/fileModel';
 import { uploadService, UploadResponse, ApiStatus } from '../services/uploadService';
 
-export type UploadStatus = 'idle' | 'validating' | 'reading' | 'uploading' | 'success' | 'error';
+export type UploadStatus = 'idle' | 'validating' | 'uploading' | 'success' | 'error';
 
 interface UploadState {
   status: UploadStatus;
@@ -44,7 +44,7 @@ export const useUploadViewModel = () => {
     setState((prev) => ({ ...prev, apiStatus: status }));
   };
 
-  const handleFile = useCallback(async (file: File) => {
+  const handleFile = useCallback((file: File) => {
     setState((prev) => ({
       ...prev,
       status: 'validating',
@@ -55,46 +55,23 @@ export const useUploadViewModel = () => {
     }));
 
     const validationResult = FileModel.validateFile(file);
-    setState((prev) => ({ ...prev, validationResult }));
 
     if (!validationResult.isValid) {
       setState((prev) => ({
         ...prev,
         status: 'error',
+        validationResult,
         error: validationResult.error || 'Invalid file',
       }));
       return;
     }
 
-    try {
-      setState((prev) => ({ ...prev, status: 'reading' }));
-      const excelData = await uploadService.readExcelFile(file);
-
-      const structureValidation = FileModel.validateExcelStructure(
-        excelData.headers || []
-      );
-
-      if (!structureValidation.isValid) {
-        setState((prev) => ({
-          ...prev,
-          status: 'error',
-          error: structureValidation.error || 'Invalid Excel structure',
-        }));
-        return;
-      }
-
-      setState((prev) => ({
-        ...prev,
-        status: 'idle',
-        excelData,
-      }));
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        status: 'error',
-        error: (error as Error).message,
-      }));
-    }
+    setState((prev) => ({
+      ...prev,
+      status: 'idle',
+      validationResult,
+      excelData: { file },
+    }));
   }, []);
 
   const handleFileSelect = useCallback(
@@ -179,38 +156,6 @@ export const useUploadViewModel = () => {
     }
   }, [state.excelData]);
 
-  const useSampleData = useCallback(async () => {
-    setState((prev) => ({ ...prev, status: 'uploading' }));
-
-    try {
-      const response = await uploadService.uploadSampleData();
-
-      if (response.success) {
-        setState((prev) => ({
-          ...prev,
-          status: 'success',
-          uploadResponse: response,
-        }));
-      } else {
-        setState((prev) => ({
-          ...prev,
-          status: 'error',
-          error: response.error || 'Failed to load sample data',
-        }));
-      }
-    } catch (error) {
-      setState((prev) => ({
-        ...prev,
-        status: 'error',
-        error: (error as Error).message,
-      }));
-    }
-  }, []);
-
-  const downloadTemplate = useCallback(() => {
-    uploadService.downloadTemplate();
-  }, []);
-
   const reset = useCallback(() => {
     setState({
       status: 'idle',
@@ -239,8 +184,6 @@ export const useUploadViewModel = () => {
     handleDrop,
     openFilePicker,
     uploadFile,
-    useSampleData,
-    downloadTemplate,
     reset,
     checkApiConnection,
   };

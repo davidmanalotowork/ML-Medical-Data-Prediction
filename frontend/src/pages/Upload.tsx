@@ -17,10 +17,10 @@ export const UploadPage: React.FC = () => {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                Hospital Readmission Prediction
+                Clinical Risk Prediction
               </h1>
               <p className="text-gray-600 mt-1">
-                Upload patient data for automated readmission risk analysis
+                Upload patient data or use the sample file to generate a risk assessment
               </p>
             </div>
           </div>

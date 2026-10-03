@@ -1,0 +1,12 @@
+.env
+node_modules
+dist
+venv
+.venv
+src/python
+*.lognode_modules
+npm-debug.log
+.env
+.git
+.gitignore
+Dockerfile

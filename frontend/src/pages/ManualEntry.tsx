@@ -143,65 +143,6 @@ export const ManualEntryPage: React.FC = () => {
     return text;
   };
 
-  // ✅ Function to render formatted recommendations
-  const renderRecommendations = (htmlString: string) => {
-    if (!htmlString) return null;
-
-    const sections = htmlString.split('<br/><br/>');
-    
-    return (
-      <div className="space-y-4">
-        {sections.map((section, index) => {
-          const cleanSection = parseHtmlContent(section);
-          if (!cleanSection) return null;
-
-          const lines = cleanSection.split('\n').filter(line => line.trim());
-          
-          return (
-            <div key={index} className="space-y-2">
-              {lines.map((line, lineIndex) => {
-                const trimmedLine = line.trim();
-                
-                // Check if it's a header
-                const isHeader = trimmedLine.includes(':') && 
-                  (trimmedLine.includes('Recommendations') || 
-                   trimmedLine.includes('Protocol') || 
-                   trimmedLine.includes('Therapy') ||
-                   trimmedLine.includes('Conditions') ||
-                   trimmedLine.includes('Assessment') ||
-                   trimmedLine.includes('Monitoring'));
-
-                // Check if it's a bullet point
-                const isBullet = trimmedLine.startsWith('•');
-
-                if (isHeader) {
-                  return (
-                    <h4 key={lineIndex} className="font-semibold text-gray-900 mt-3">
-                      {trimmedLine}
-                    </h4>
-                  );
-                } else if (isBullet) {
-                  return (
-                    <p key={lineIndex} className="text-sm text-gray-700 pl-4">
-                      {trimmedLine}
-                    </p>
-                  );
-                } else if (trimmedLine.length > 0) {
-                  return (
-                    <p key={lineIndex} className="text-sm text-gray-600 italic">
-                      {trimmedLine}
-                    </p>
-                  );
-                }
-                return null;
-              })}
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <Navbar />
@@ -254,7 +195,7 @@ export const ManualEntryPage: React.FC = () => {
                         id="fullName"
                         value={formData.fullName}
                         onChange={(e) => updateField('fullName', e.target.value)}
-                        placeholder="Joshua Co"
+                        placeholder="Example Patient"
                         required
                       />
                     </div>

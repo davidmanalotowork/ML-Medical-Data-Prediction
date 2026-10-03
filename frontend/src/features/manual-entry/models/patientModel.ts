@@ -47,7 +47,7 @@ export const initialFormData: PatientFormData = {
 
 export const sampleData: PatientFormData = {
   patientId: 'P-12345',
-  fullName: 'Joshua Co',
+  fullName: 'Example Patient',
   age: 65,
   gender: 'Male',
   admissionDate: '2025-01-10',

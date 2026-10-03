@@ -12,21 +12,41 @@ dotenv.config();
 
 const app = express();
 
+app.disable('x-powered-by');
+
 app.use(helmet({
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "same-site" },
+  hsts: {
+    maxAge: 31536000,
+    includeSubDomains: true,
+    preload: true
+  },
+  noSniff: true,
+  frameguard: { action: 'deny' },
+  xssFilter: true,
+  referrerPolicy: { policy: 'no-referrer' }
 }));
+
+const getAllowedOrigins = () => {
+  const configuredOrigins = [
+    process.env.FRONTEND_URL,
+    process.env.ALLOWED_ORIGINS,
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:5173',
+    'http://localhost:5174'
+  ];
+
+  return configuredOrigins
+    .flatMap((value) => (value || '').split(',').map((item) => item.trim()).filter(Boolean))
+    .filter((value, index, array) => array.indexOf(value) === index);
+};
 
 const corsOptions = {
   origin: function (origin, callback){
     if (!origin) return callback(null, true);
 
-    const allowedOrigins =[
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:5173',
-      'http://localhost:5174',
-      process.env.FRONTEND_URL
-    ].filter(Boolean);
+    const allowedOrigins = getAllowedOrigins();
 
     if (allowedOrigins.indexOf(origin) !== -1){
       callback(null, true);
@@ -35,8 +55,9 @@ const corsOptions = {
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  optionsSuccessStatus: 204
 };
 
 app.use(cors(corsOptions));
@@ -57,6 +78,13 @@ app.use(express.json({
     }
   }
 }));
+
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+});
 
 app.use(express.urlencoded({
   extended: true,

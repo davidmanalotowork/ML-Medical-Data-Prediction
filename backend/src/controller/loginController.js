@@ -144,11 +144,7 @@ export const getMe = async (req, res) => {
 };
 export const logout = async (req, res) => {
   try {
-    const admin = await Admin.findById(req.user.id).select('-password');
-
-    if (admin) {
-      console.log(`Admin ${admin.email} logged out successfully`);
-    }
+    await Admin.findById(req.user.id).select('-password');
 
     res.status(200).json({
       success: true,

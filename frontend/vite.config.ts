@@ -11,4 +11,17 @@ export default  defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  server: {
+    proxy: {
+      "/api": {
+        target: "http://127.0.0.1:5000",
+        changeOrigin: true,
+      },
+      "/ml": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+        rewrite: (requestPath) => requestPath.replace(/^\/ml/, ""),
+      },
+    },
+  },
 })

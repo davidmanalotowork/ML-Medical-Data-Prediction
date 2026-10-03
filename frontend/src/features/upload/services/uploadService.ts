@@ -1,13 +1,7 @@
-import * as XLSX from 'xlsx';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const PYTHON_ML_API = import.meta.env.VITE_PYTHON_ML_API || 'http://localhost:8000';
+const PYTHON_ML_API = import.meta.env.VITE_PYTHON_ML_API || '/ml';
 
 interface ExcelFileData {
   file: File;
-  data: any[];
-  headers: string[];
-  rowCount: number;
 }
 
 interface UploadResponse {
@@ -29,64 +23,11 @@ interface UploadResponse {
 interface ApiStatus {
   isConnected: boolean;
   message: string;
+  modelVersion?: string;
+  timestamp?: number;
 }
 
 class UploadService {
-  private getAuthHeaders(): HeadersInit {
-    const token = localStorage.getItem('token');
-    return {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    };
-  }
-
-  async readExcelFile(file: File): Promise<ExcelFileData> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-
-      reader.onload = (e) => {
-        try {
-          const data = e.target?.result;
-          const workbook = XLSX.read(data, { type: 'binary' });
-          const sheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-
-          if (jsonData.length === 0) {
-            reject(new Error('File is empty'));
-            return;
-          }
-
-          const headers = jsonData[0] as string[];
-          const rows = jsonData.slice(1);
-
-          const dataObjects = rows.map((row: any) => {
-            const obj: any = {};
-            headers.forEach((header, index) => {
-              obj[header] = row[index];
-            });
-            return obj;
-          });
-
-          resolve({
-            file,
-            data: dataObjects,
-            headers,
-            rowCount: rows.length,
-          });
-        } catch (error) {
-          reject(new Error('Failed to parse Excel file'));
-        }
-      };
-
-      reader.onerror = () => {
-        reject(new Error('Failed to read file'));
-      };
-
-      reader.readAsBinaryString(file);
-    });
-  }
-
   async uploadFile(excelData: ExcelFileData): Promise<UploadResponse> {
     try {
       const formData = new FormData();
@@ -181,9 +122,11 @@ class UploadService {
       });
 
       if (response.ok) {
+        const health = await response.json();
         return {
           isConnected: true,
           message: 'ML API Connected',
+          modelVersion: health.model_version,
         };
       } else {
         return {

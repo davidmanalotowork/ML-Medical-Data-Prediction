@@ -1,5 +1,5 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const PYTHON_ML_API = import.meta.env.VITE_PYTHON_ML_API || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const PYTHON_ML_API = import.meta.env.VITE_PYTHON_ML_API || '/ml';
 
 interface PatientFormData {
   patientId: string;

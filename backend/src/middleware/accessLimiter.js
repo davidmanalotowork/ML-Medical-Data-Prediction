@@ -16,8 +16,6 @@ export const verifyToken = async (req, res, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
-    console.log('Token decoded:', decoded);
-    
     // Attach user info to request with proper id field
     req.user = {
       id: decoded.id || decoded._id || decoded.userId,
@@ -26,8 +24,6 @@ export const verifyToken = async (req, res, next) => {
       name: decoded.name,
       userType: decoded.userType
     };
-
-    console.log('User attached to request:', req.user);
 
     next();
   } catch (error) {

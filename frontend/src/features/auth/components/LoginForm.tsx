@@ -42,9 +42,9 @@ export const LoginForm: React.FC<LoginFormProps> = ({
     <div className={`w-full max-w-md space-y-6 ${className}`}>
       {}
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold">Hospital Readmission</h1>
+        <h1 className="text-3xl font-bold">Admin Access</h1>
         <p className="text-muted-foreground">
-          Sign in your admin account to continue
+          Sign in with your administrator account to continue
         </p>
       </div>
 

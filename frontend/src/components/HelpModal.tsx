@@ -1,8 +1,8 @@
 import React from 'react';
-import { X, Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Download, FileText, Info } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle2, AlertCircle, Info, FileText } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 
 interface HelpModalProps {
@@ -17,10 +17,10 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-2xl">
             <Info className="w-6 h-6 text-blue-600" />
-            System Help & Guide
+            Tool Help & Guide
           </DialogTitle>
           <DialogDescription>
-            Learn how to use the Hospital Readmission Prediction System
+            Learn how to use the clinical risk prediction tool, including sample data and the recommended workflow
           </DialogDescription>
         </DialogHeader>
 
@@ -88,7 +88,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                 </div>
 
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mt-4">
-                  <h4 className="font-semibold text-blue-900 mb-2">Supported Diseases</h4>
+                  <h4 className="font-semibold text-blue-900 mb-2">Supported Conditions</h4>
                   <div className="flex flex-wrap gap-2">
                     <Badge variant="outline">Type 2 Diabetes</Badge>
                     <Badge variant="outline">Chronic Kidney Disease</Badge>
@@ -96,6 +96,22 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                     <Badge variant="outline">Hypertension</Badge>
                     <Badge variant="outline">Pneumonia</Badge>
                   </div>
+                </div>
+
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4 mt-4">
+                  <h4 className="font-semibold text-green-900 mb-2">Quick Start</h4>
+                  <ol className="list-decimal list-inside space-y-2 text-sm text-green-900">
+                    <li>Download the sample file below if you do not have your own data.</li>
+                    <li>Upload the CSV or Excel file to the prediction area.</li>
+                    <li>Review the risk score, contributing factors, and recommended next steps.</li>
+                  </ol>
+                  <a
+                    href="/sample-patient-data.csv"
+                    download
+                    className="mt-3 inline-block rounded-md bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700"
+                  >
+                    Download sample file
+                  </a>
                 </div>
               </CardContent>
             </Card>
@@ -196,7 +212,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({ isOpen, onClose }) => {
                         <tr className="border-b">
                           <td className="p-2 font-mono text-xs">patient_name</td>
                           <td className="p-2">Patient full name</td>
-                          <td className="p-2 text-gray-600">Joshua Co</td>
+                          <td className="p-2 text-gray-600">Example Patient</td>
                         </tr>
                         <tr className="border-b">
                           <td className="p-2 font-mono text-xs">age</td>

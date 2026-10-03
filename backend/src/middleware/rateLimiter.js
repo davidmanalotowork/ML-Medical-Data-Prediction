@@ -56,7 +56,7 @@ const createRateLimiter = (options = {}) => {
 
 export const generalLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 9999,
+  max: 200,
   message: 'Too many requests, please slow down.'
 });
 
@@ -71,7 +71,9 @@ export const authLimiter = createRateLimiter({
 });
 
 export const apiLimiter = createRateLimiter({
-   skip: () => true
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  message: 'Too many API requests, please try again later.'
 });
 
 export const strictLimiter = createRateLimiter({

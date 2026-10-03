@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Sparkles, CheckCircle2, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { CheckCircle2, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { authService } from '@/features/auth/services/authService';
 import { Navbar } from '@/components/Navbar';
 import { UploadForm } from '@/features/upload/components/UploadForm';
@@ -7,14 +7,13 @@ import { ResultsTable, PredictionResult } from '@/features/upload/components/Res
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 export const DashboardPage: React.FC = () => {
   const user = authService.getUser();
   const [results, setResults] = useState<PredictionResult[]>([]);
   const [uploadedFileName, setUploadedFileName] = useState<string>('');
   const [disease, setDisease] = useState<string>('');
-  const [isSavingHistory, setIsSavingHistory] = useState(false);
   const [saveError, setSaveError] = useState<string>('');
   
   const [sessionId, setSessionId] = useState<string>('');
@@ -53,8 +52,6 @@ export const DashboardPage: React.FC = () => {
       console.log('Upload already saved, skipping duplicate');
       return;
     }
-
-    setIsSavingHistory(true);
 
     try {
       const token = authService.getToken();
@@ -111,8 +108,6 @@ export const DashboardPage: React.FC = () => {
     } catch (error) {
       console.error('Error saving history:', error);
       setSaveError((error as Error).message);
-    } finally {
-      setIsSavingHistory(false);
     }
   };
 

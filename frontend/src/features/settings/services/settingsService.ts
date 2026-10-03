@@ -1,12 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-interface SettingsData {
-  name: string;
-  email: string;
-  role: string;
-  lastLogin?: string;
-  createdAt?: string;
-}
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 interface PasswordData {
   currentPassword: string;
